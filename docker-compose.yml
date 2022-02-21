@@ -125,3 +125,20 @@ services:
         ipv4_address: 172.18.0.7
     labels:
       org.label-schema.group: "monitoring"
+      
+  processexporter:
+    image: ncabatoff/process-exporter:latest
+    container_name: process-exporter
+    volumes:
+      - ./process-exporter:/config
+      - prometheus-storage:/process-exporter
+    command:
+      - '--config.path=/config/config.yml'
+    restart: unless-stopped
+    ports:
+      - "9256:9256"
+    networks:
+      prometheus-network:
+        ipv4_address: 172.18.0.8
+    labels:
+      org.label-schema.group: "monitoring"

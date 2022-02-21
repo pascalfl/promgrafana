@@ -94,5 +94,20 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: 172.18.0.6:9115  # This is your blackbox exporter.
+  
+  - job_name: PROCESS-EXPORTER
+    scrape_interval: 60s
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+    - targets:
+      - 172.18.0.8:9256
+      labels:
+        environment: dev
+        cluster: process-exporter-clus
+        role: Demo
+        applicationId: PROCESS-EXPORTER
+        hname: process-exporter-node1
+        type: linux
 
     
