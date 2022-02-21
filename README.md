@@ -1,2 +1,2 @@
 # promgrafana
-Prometheus Grafana zandbox
+Prometheus Grafana sandbox
