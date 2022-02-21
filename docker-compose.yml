@@ -1,0 +1,127 @@
+version: '2.1'
+
+networks:
+  prometheus-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
+    
+
+volumes:
+    prometheus-storage: {}
+    grafana-storage: {}
+
+services:
+
+  prometheus:
+    image: bitnami/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus-storage:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    networks:
+      prometheus-network:
+        ipv4_address: 172.18.0.2      
+    labels:
+      org.label-schema.group: "monitoring"
+
+  alertmanager:
+    image: bitnami/alertmanager:latest
+    container_name: alertmanager
+    volumes:
+      - ./alertmanager:/etc/alertmanager
+      - prometheus-storage:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    networks:
+      prometheus-network:
+        ipv4_address: 172.18.0.3
+    labels:
+      org.label-schema.group: "monitoring"
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+    environment:
+      - GF_SECURITY_ADMIN_USER=${ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      prometheus-network:
+        ipv4_address: 172.18.0.4
+    labels:
+      org.label-schema.group: "monitoring"
+
+  nodeexporter:
+    image: bitnami/node-exporter:latest
+    container_name: nodeexporter
+#    volumes:
+#      - /proc:/host/proc:ro
+#      - /sys:/host/sys:ro
+#      - /:/rootfs:ro
+#    command:
+#      - '--path.procfs=/host/proc'
+#      - '--path.rootfs=/rootfs'
+#      - '--path.sysfs=/host/sys'
+#      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    networks:
+      prometheus-network:
+        ipv4_address: 172.18.0.5
+    labels:
+      org.label-schema.group: "monitoring"
+
+  blackboxexporter:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox-exporter
+    volumes:
+      - ./blackbox-exporter:/config
+      - prometheus-storage:/blackbox-exporter
+    command:
+      - '--config.file=/config/config.yml'
+    restart: unless-stopped
+    ports:
+      - "9115:9115"
+    networks:
+      prometheus-network:
+        ipv4_address: 172.18.0.6
+    labels:
+      org.label-schema.group: "monitoring"
+
+  collectdexporter:
+    image: prom/collectd-exporter:latest
+    container_name: collectd-exporter
+  #  command:
+  #    - '--collectd.listen-address=":25826"'
+    restart: unless-stopped
+    ports:
+      - "9103:9103"
+    networks:
+      prometheus-network:
+        ipv4_address: 172.18.0.7
+    labels:
+      org.label-schema.group: "monitoring"
